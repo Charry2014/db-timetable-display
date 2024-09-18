@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Current Time</title>
+</head>
+<body>
+    <h1>Current Time</h1>
+    <p id="time"></p>
+
+    <script>
+        const timeElement = document.getElementById('time');
+
+        const eventSource = new EventSource('/time');
+        eventSource.onmessage = (event) => {
+            timeElement.textContent = new Date(event.data).toLocaleTimeString('en-US', { timeZone: 'UTC' });
+        };
+    </script>
+</body>
+</html>

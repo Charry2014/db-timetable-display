@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>All Train Departures</title>
+    <link href="{{ url_for('static', filename='styles/minimal-table.css')}}" rel="stylesheet" type="text/css">
+</head>
+<body>
+    <p id="time"></p>
+    <table>
+        <thead>
+            <tr>
+                <th>Destination</th>
+                <th>Depart In</th>
+                <th>Planned Departure</th>
+                <th>Actual Departure</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for train in train_data %}
+            <tr>
+                <td>{{ train['destination'] }}</td>
+                <td>{{ train['depart_in'] }}</td>
+                <td>{{ train['planned_departure'] }}</td>
+                <td>{{ train['actual_departure'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <script>
+        const timeElement = document.getElementById('time');
+
+        const eventSource = new EventSource('/time');
+        eventSource.onmessage = (event) => {
+            timeElement.textContent = new Date(event.data).toLocaleTimeString('en-US', { timeZone: 'UTC' });
+        };
+    </script>
+</body>
+</html>
