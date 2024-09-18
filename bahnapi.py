@@ -36,7 +36,7 @@ class TransportAPI:
 
 
     def get_departure_details(self, id: int):
-        response = requests.get(f'https://v6.db.transport.rest/stops/{id}/departures?results={self.__departures}&duration={self.__duration}&bus=false')
+        response = requests.get(f'https://v6.db.transport.rest/stops/{id}/departures?results={self.__departures}&duration={self.__duration}&bus=false&taxi=false')
         if response.status_code != 200:
             raise Exception('Server error')
         decoded = response.json()['departures']
