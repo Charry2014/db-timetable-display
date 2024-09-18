@@ -3,18 +3,17 @@ from time import time, sleep
 from datetime import datetime
 
 from bahnapi import Station
-
+import json
 
 app = Flask(__name__)
 station = Station("Zorneding")
 
 
-def generate_time():
+def update():
     while True:
-        now = f"data:{datetime.now()}\n\n"
-        # print(now)
-        yield now
-        sleep(1)
+        data = station.get_departure_details()
+        yield f"data: {json.dumps(data)}\n\n"
+        sleep(60)
 
 
 def generate_train_data():
@@ -24,14 +23,10 @@ def generate_train_data():
 def index():
     return render_template('trains.html')
 
-@app.route('/time')
+@app.route('/update')
 def time():
-    return Response(generate_time(), mimetype='text/event-stream')
-
-@app.route('/trains')
-def trains():
-    return Response(generate_train_data(), mimetype='text/event-stream')
+    while True:
+        return Response(update(), mimetype='text/event-stream')
 
 if __name__ == '__main__':
-
     app.run(debug=True)

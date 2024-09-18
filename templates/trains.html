@@ -13,27 +13,30 @@
             <tr>
                 <th>Destination</th>
                 <th>Depart In</th>
-                <th>Planned Departure</th>
                 <th>Actual Departure</th>
+                <th>Delay</th>
+                <th>Planned Departure</th>
             </tr>
         </thead>
-        <tbody>
-            {% for train in train_data %}
-            <tr>
-                <td>{{ train['destination'] }}</td>
-                <td>{{ train['depart_in'] }}</td>
-                <td>{{ train['planned_departure'] }}</td>
-                <td>{{ train['actual_departure'] }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
+        <tbody id="table-body"> </tbody>
     </table>
     <script>
-        const timeElement = document.getElementById('time');
-
-        const eventSource = new EventSource('/time');
+        const eventSource = new EventSource('/update');
         eventSource.onmessage = (event) => {
-            timeElement.textContent = new Date(event.data).toLocaleTimeString('en-US', { timeZone: 'UTC' });
+            const data = JSON.parse(event.data);
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            data.forEach((item) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item[0]}</td>
+                    <td>${item[1]}</td>
+                    <td>${item[2]}</td>
+                    <td>${item[3]}</td>
+                    <td>${item[4]}</td>
+                `;
+                tbody.appendChild(row);
+            });
         };
     </script>
 </body>
