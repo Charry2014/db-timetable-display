@@ -3,11 +3,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
-    <title>All Train Departures</title>
+    <title>Train Departures</title>
     <link href="{{ url_for('static', filename='styles/minimal-table.css')}}" rel="stylesheet" type="text/css">
 </head>
 <body>
-    <p id="time"></p>
     <table>
         <thead>
             <tr>
@@ -18,7 +17,7 @@
                 <th>Planned Departure</th>
             </tr>
             <tr class="table-subheading">
-                <td></td>
+                <td id="update-timestamp"></td>
                 <td>Minutes</td>
                 <td>Time</td>
                 <td>Minutes</td>
@@ -32,9 +31,13 @@
         const eventSource = new EventSource('/update');
         eventSource.onmessage = (event) => {
             const data = JSON.parse(event.data);
+
+            const timestamp = document.getElementById('update-timestamp');
+            timestamp.textContent = data.timestamp;
+
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
-            data.forEach((item) => {
+            data.trains.forEach((item) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${item[0]}</td>

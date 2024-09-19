@@ -46,7 +46,10 @@ class TransportAPI:
             depart = datetime.strptime(d['when'], '%Y-%m-%dT%H:%M:%S%z')
             when = depart.strftime('%H:%M')
             depart_in = int((depart - datetime.now(timezone.utc)).seconds / 60) + 1
+            # Check sanity of the departure time - can return funky values for trains departing now
             assert depart_in >= 0
+            if depart_in > 1000:
+                depart_in = 0
             planned = datetime.strptime(d['plannedWhen'], '%Y-%m-%dT%H:%M:%S%z').strftime('%H:%M')
             if d['delay'] is not None: 
                 delay = int(d['delay'] / 60) 
@@ -54,7 +57,8 @@ class TransportAPI:
                 delay = 0 
             filtered.append((d['direction'], depart_in, when, delay, planned))
 
-        return filtered
+        return json.dumps({"timestamp": f"Updated {datetime.strftime(datetime.now(timezone.utc), '%H:%M') }",
+                           "trains": filtered})
 
 
     @property
