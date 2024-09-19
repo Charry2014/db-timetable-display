@@ -1,0 +1,4 @@
+flask
+loguru
+requests
+waitress

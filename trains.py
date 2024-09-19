@@ -9,6 +9,9 @@ logger.remove(0)
 from bahnapi import Station
 
 app = Flask(__name__)
+logger.debug("Starting")
+station = Station("Zorneding")
+logger.debug("Got station details")
 
 def update():
     while True:
@@ -29,7 +32,4 @@ def flask_update():
         return Response(update(), mimetype='text/event-stream')
 
 if __name__ == '__main__':
-    logger.debug("Starting")
-    station = Station("Zorneding")
-    logger.debug("Got station details")
     app.run(port=5123, debug=True)
