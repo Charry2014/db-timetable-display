@@ -29,7 +29,6 @@ def flask_update():
         return Response(update(), mimetype='text/event-stream')
 
 if __name__ == '__main__':
-
     logger.debug("Starting")
     station = Station("Zorneding")
     logger.debug("Got station details")

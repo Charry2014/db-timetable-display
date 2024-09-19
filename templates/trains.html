@@ -25,7 +25,15 @@
               </tr>
             
         </thead>
-        <tbody id="table-body"> </tbody>
+        <tbody id="table-body-east"> </tbody>
+        <tr class="table-subheading">
+            <td id="update-timestamp"></td>
+            <td>Minutes</td>
+            <td>Time</td>
+            <td>Minutes</td>
+            <td>Time</td>
+          </tr>
+    <tbody id="table-body-west"> </tbody>
     </table>
     <script>
         const eventSource = new EventSource('/update');
@@ -35,9 +43,9 @@
             const timestamp = document.getElementById('update-timestamp');
             timestamp.textContent = data.timestamp;
 
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
-            data.trains.forEach((item) => {
+            const tbodywest = document.getElementById('table-body-west');
+            tbodywest.innerHTML = '';
+            data.trains_west.forEach((item) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${item[0]}</td>
@@ -46,7 +54,20 @@
                     <td>${item[3]}</td>
                     <td>${item[4]}</td>
                 `;
-                tbody.appendChild(row);
+                tbodywest.appendChild(row);
+            });
+            const tbodyeast = document.getElementById('table-body-east');
+            tbodyeast.innerHTML = '';
+            data.trains_east.forEach((item) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item[0]}</td>
+                    <td>${item[1]}</td>
+                    <td>${item[2]}</td>
+                    <td>${item[3]}</td>
+                    <td>${item[4]}</td>
+                `;
+                tbodyeast.appendChild(row);
             });
         };
     </script>
