@@ -6,7 +6,6 @@ hosted on one of my servers. The page will be displayed in HA dashboard.
 '''
 import requests
 from datetime import datetime, timezone
-import xml.etree.ElementTree as elementTree
 import json
 
 class TransportAPI:

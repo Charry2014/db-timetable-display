@@ -2,31 +2,33 @@ from flask import Flask, render_template, Response
 from time import time, sleep
 from datetime import datetime
 
-from bahnapi import Station
 import json
+from loguru import logger
+
+from bahnapi import Station
 
 app = Flask(__name__)
-station = Station("Zorneding")
-
 
 def update():
     while True:
+        logger.debug("Updating data")
         data = station.get_departure_details()
+        logger.debug("Got data")
         yield f"data: {json.dumps(data)}\n\n"
         sleep(60)
-
-
-def generate_train_data():
-    pass
 
 @app.route('/')
 def index():
     return render_template('trains.html')
 
 @app.route('/update')
-def time():
+def flask_update():
+    logger.debug("Starting Flask update")
     while True:
         return Response(update(), mimetype='text/event-stream')
 
 if __name__ == '__main__':
+    logger.debug("Starting")
+    station = Station("Zorneding")
+    logger.debug("Got station details")
     app.run(debug=True)
