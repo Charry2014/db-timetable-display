@@ -17,4 +17,4 @@ ENV PATH="$VENV/bin:$PATH"
 
 
 RUN pip3 install -r requirements.txt
-CMD ["./venv/bin/waitress-serve", "--listen=0.0.0.0:5123", "trains:app"]
+CMD ["./venv/bin/waitress-serve", "--listen=0.0.0.0", "trains:app"]
