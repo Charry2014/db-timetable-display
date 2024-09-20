@@ -8,7 +8,7 @@ table {
   border-collapse: collapse;
   border: 2px solid rgb(200,200,200);
   letter-spacing: 1px;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
 }
 
 td, th {
@@ -22,6 +22,8 @@ th {
 
 td {
   text-align: center;
+  line-height: 9px;
+  padding: 5px 5px;
 }
 
 .table-subheading td {
