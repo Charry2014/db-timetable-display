@@ -7,7 +7,7 @@ RUN apt-get upgrade -y
 RUN apt-get install -y curl
 RUN apt-get install -y git python3 python3-pip python3-venv
 
-ENV WORKDIR /timetable
+ENV WORKDIR=/timetable
 ENV VENV=$WORKDIR/venv
 
 WORKDIR $WORKDIR
@@ -19,4 +19,4 @@ RUN git clone https://github.com/Charry2014/db-timetable-display
 WORKDIR $WORKDIR/db-timetable-display
 RUN pip3 install -r requirements.txt
 
-CMD ["./venv/bin/waitress-serve", "--listen=0.0.0.0", "trains:app"]
+CMD ["${VENV}/bin/waitress-serve", "--listen=0.0.0.0", "trains:app"]
