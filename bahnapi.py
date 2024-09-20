@@ -8,6 +8,7 @@ import requests
 from datetime import datetime, timezone
 import json
 
+
 class TransportAPI:
     requests.packages.urllib3.util.connection.HAS_IPV6 = False
 
@@ -89,7 +90,7 @@ class Station:
         trains_east = [train for train in trains if train[0] in ['Ebersberg(Oberbay)', 'Grafing Bahnhof']]
         trains_west = [train for train in trains if train[0] not in ['Ebersberg(Oberbay)', 'Grafing Bahnhof']]
 
-        retval = json.dumps({"timestamp": f"Updated {datetime.strftime(datetime.now(timezone.utc), '%H:%M') }",
+        retval = json.dumps({"timestamp": f"Updated {datetime.strftime(datetime.now(), '%H:%M') }",
                            "trains_east": trains_east, "trains_west": trains_west})
         return retval
 
