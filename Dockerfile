@@ -14,8 +14,7 @@ WORKDIR $WORKDIR
 RUN python3 -m venv $VENV
 ENV PATH="$VENV/bin:$PATH"
 
-RUN rm -rf ./db-timetable-display
-RUN git clone https://github.com/Charry2014/db-timetable-display
+COPY ./db-timetable-display/ $WORKDIR/db-timetable-display/
 WORKDIR $WORKDIR/db-timetable-display
 RUN pip3 install -r requirements.txt
 
