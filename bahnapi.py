@@ -6,26 +6,59 @@ hosted on one of my servers. The page will be displayed in HA dashboard.
 '''
 import requests
 from datetime import datetime, timezone
+from dataclasses import dataclass
 import json
 
 
 class TransportAPI:
+    # This site has bad IPv6 support. Turn it off.
     requests.packages.urllib3.util.connection.HAS_IPV6 = False
 
-    def __init__(self, name, departures=15, duration=360) -> None:
+    @dataclass
+    class CacheElement:
+        data: None # This will be the data structure returned by response.get()
+        updated: datetime
+
+
+    def __init__(self, name, departures=15, duration=360, cache_age_max=3) -> None:
         self.__name = name
-        self.__station = self.__get_station()
         self.__departures = departures
         self.__duration = duration
+        self.__cache = {}
+        self.__cache_age_max = cache_age_max # in minutes
 
+        self.__station = self.__get_station()
+
+
+    def __cache_response(self, url, response):
+        self.__cache[url] = self.CacheElement(data=response, updated=datetime.now())
+
+    def __get_cached_response(self, url) -> CacheElement:
+        delete_keys = []
+        # Iterate over whole cache dictionary and remove any element that is older than cache_age_max
+        for key, value in self.__cache.items():
+            if (datetime.now() - value.updated).seconds > self.__cache_age_max * 60:
+                delete_keys.append(key)
+        for key in delete_keys:                
+            self.__cache.pop(key)
+        if url in self.__cache:
+            return self.__cache[url]
+        else:
+            return None
 
     def __communicate(self, url):
-        response = requests.get(f'https://v6.db.transport.rest/stations?query={self.__name}')
-        if response.status_code != 200:
-            print(f'Server error code {response.status_code}')
-            raise SystemExit(1)
-
-        updated = datetime.strftime(datetime.now(), '%H:%M')
+        response = requests.get(url)
+        if response.status_code == 200:
+            self.__cache_response(url, response)
+            updated = datetime.strftime(datetime.now(), '%H:%M')
+        else:
+            cached = self.__get_cached_response(url)
+            if cached is None:
+                print(f'Server error code {response.status_code} and cache miss. Exiting.')
+                raise SystemExit(1)
+            else:
+                updated = datetime.strftime(cached.updated, '%H:%M')
+                response = cached.data
         return response, updated
 
     def __get_station(self) -> dict:
@@ -37,7 +70,8 @@ class TransportAPI:
         response, _ = self.__communicate(f'https://v6.db.transport.rest/stations?query={self.__name}')
         self.__stations = response.json()
         if not len(self.__stations) == 1:
-            raise Exception('Station name not unique or not found')
+                print(f'Station name not unique or not found')
+                raise SystemExit(1)
         self.__station = self.__stations[next(iter(self.__stations))]
         return self.__station
 
