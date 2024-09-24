@@ -4,8 +4,9 @@ If you use Deutsche Bahn trains regularly you will be familiar with the importan
 
 # Overview
 
-* The project uses the https://v6.db.transport.rest/ API
+* The project uses the https://v6.db.transport.rest/ API to source train data, not the DB official one
 * The `requests` module is used to pull data
+* There is some simple caching of previous returned data as the server returns 500 sometimes
 * `Flask` is used to create the web page
 * The page updates using SSE
 * The production site is hosted using `waitress`
