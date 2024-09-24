@@ -1,0 +1,10 @@
+services:
+  timetable:
+    image: ubuntu:24.04
+    container_name: timetable_app
+    ports:
+      - "8080:8080"
+    working_dir: /timetable
+    volumes:
+      - ./db-timetable-display:/timetable
+    command: /bin/bash -c /timetable/execute.sh
