@@ -2,6 +2,8 @@ FROM ubuntu:24.04
 
 EXPOSE 8080
 
+ENV TZ=Europe/Berlin
+
 RUN apt-get update -y && apt-get upgrade -y
 RUN apt-get install -y curl git python3 python3-pip python3-venv
 

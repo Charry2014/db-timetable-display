@@ -2,6 +2,8 @@ services:
   timetable:
     image: ubuntu:24.04
     container_name: timetable_app
+    environment:
+      - TZ=Europe/Berlin
     ports:
       - 5123:8080
     working_dir: /timetable
