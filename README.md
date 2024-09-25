@@ -25,14 +25,26 @@ The official DB API has a number of issues - a developer account is needed to ge
 
 The container is based on Ubuntu 24.04 and installs Python 3 and pip the usual way. There is a trick with the virtual environment that is doesn't activate in a Docker container the same way it would on a desktop. The `activate` is faked using the PATH variable, but the path to `waitress` has to be given explicitly.
 
+## Dockerfile
 The commands to build and run the container -
 `docker build -t timetable .`
 
 `docker run -p5123:8080 -d --restart unless-stopped timetable`
 
+## Docker Compose
+Not really sure if this is the best way to do this, fairly sure it is not, but this works even if it is clunky.
+The container should again be available on port 5123 but in my testing it remained resolutely on 8080.
+
+Choose a directory on the server and then -
+`git clone git@github.com:Charry2014/db-timetable-display.git` or `git pull` to update
+`cp db-timetable-display/docker-compose.yml .`
+`docker-compose up -d`
+
+Uses the execute.sh script to install what is needed and run the server.
 
 # To-do
 
-Move to docker-compose
 Abstract away the station name from the code, as well as the hard coded destinations for the east-west split.
 Clean up the time zones
+
+DONE - Move to docker-compose
