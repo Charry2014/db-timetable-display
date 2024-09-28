@@ -82,7 +82,12 @@ class TransportAPI:
         # The response is a list of dicts with keys direction (Tutzing:str) delay (seconds:int)
         # when ('2024-09-18T16:23:00+02:00':str) and plannedWhen ('2024-09-18T16:23:00+02:00':str)
         filtered = []
+        tripid = {}
         for d in decoded:
+            # Filter out duplicates, the server does sometimes produce these
+            if d['tripId'] in tripid:
+                continue
+            tripid[d['tripId']] = 1
             if d['plannedWhen'] == None:
                 raise Exception('Invalid data received from server')
                 exit(1)
