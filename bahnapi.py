@@ -20,12 +20,13 @@ class TransportAPI:
         updated: datetime
 
 
-    def __init__(self, name, departures=15, duration=360, cache_age_max=3) -> None:
+    def __init__(self, name, departures=15, duration=360, cache_age_max=180) -> None:
+        # Duration and cache age in seconds
         self.__name = name
         self.__departures = departures
         self.__duration = duration
         self.__cache = {}
-        self.__cache_age_max = cache_age_max # in minutes
+        self.__cache_age_max = cache_age_max
 
         self.__station = self.__get_station()
 
@@ -37,7 +38,7 @@ class TransportAPI:
         delete_keys = []
         # Iterate over whole cache dictionary and remove any element that is older than cache_age_max
         for key, value in self.__cache.items():
-            if (datetime.now() - value.updated).seconds > self.__cache_age_max * 60:
+            if (datetime.now() - value.updated).seconds > self.__cache_age_max:
                 delete_keys.append(key)
         for key in delete_keys:                
             self.__cache.pop(key)
