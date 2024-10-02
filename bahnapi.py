@@ -36,6 +36,7 @@ class Station:
                 print(f'Station name not unique or not found')
                 raise SystemExit(1)
         self.__station_id = response[next(iter(response))]['id']
+        assert self.__station_id.isdigit()
 
 
     def __process_departures(self, departures):
@@ -82,10 +83,6 @@ class Station:
 
         return retval, timestamp
 
-
-    # @property
-    # def station(self) -> int:
-    #     return self.__station
 
     def get_departure_details(self):
         ''''Grafing Bahnhof', (Depart in) 8, '17:40', (Delay) 32, '17:08'
