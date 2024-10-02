@@ -18,6 +18,9 @@
                 <th>Delay</th>
                 <th>Planned Departure</th>
             </tr>
+            <tr>
+                <td colspan="5" id="direction1_title" class="direction-subheading"></td>
+             </tr>
             <tr class="table-subheading">
                 <td id="update-timestamp"></td>
                 <td>Minutes</td>
@@ -25,17 +28,19 @@
                 <td>Minutes</td>
                 <td>Time</td>
               </tr>
-            
         </thead>
         <tbody id="table-body-east"> </tbody>
+        <tr>
+            <td colspan="5" id="direction2_title" class="direction-subheading"></td>
+         </tr>
         <tr class="table-subheading">
-            <td>Direction Munich</td>
-            <td>Minutes</td>
-            <td>Time</td>
-            <td>Minutes</td>
-            <td>Time</td>
+            <td>Destination</td>
+            <td>Depart In</td>
+            <td>Actual Departure</td>
+            <td>Delay</td>
+            <td>Planned Departure</td>
           </tr>
-    <tbody id="table-body-west"> </tbody>
+<tbody id="table-body-west"> </tbody>
     </table>
     <script>
         const eventSource = new EventSource('/update');
@@ -44,6 +49,10 @@
 
             const timestamp = document.getElementById('update-timestamp');
             timestamp.textContent = data.timestamp;
+            const title1 = document.getElementById('direction1_title');
+            title1.textContent = data.direction1_title;
+            const title2 = document.getElementById('direction2_title');
+            title2.textContent = data.direction2_title;
 
             const tbodywest = document.getElementById('table-body-west');
             tbodywest.innerHTML = '';

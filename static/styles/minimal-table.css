@@ -33,6 +33,14 @@ td {
   padding: 5px 5px;
 }
 
+.direction-subheading {
+  text-align: center;
+  background-color: rgb(240,240,240);
+  font-size: 0.8rem;
+  line-height: 5px;
+  padding: 5px 5px;
+}
+
 tr:nth-child(even) td {
   background-color: rgb(240,240,240);
 }

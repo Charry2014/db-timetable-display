@@ -150,7 +150,10 @@ class Station:
         trains_west = [train for train in trains if train[0] not in ['Ebersberg(Oberbay)', 'Grafing Bahnhof']]
 
         retval = json.dumps({"timestamp": f"Updated {timestamp}",
-                           "trains_east": trains_east, "trains_west": trains_west})
+                             "direction1_title": "Direction Ebersberg",
+                             "direction2_title": "Direction Munich",
+                             "trains_east": trains_east, "trains_west": trains_west})
+
         return retval
 
 
