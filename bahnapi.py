@@ -46,16 +46,21 @@ class TransportAPI:
         else:
             return None
 
-    def __communicate(self, url):
+    def __communicate(self, url, default=None):
         response = requests.get(url)
         if response.status_code == 200:
+            response = response.json()
             self.__cache_response(url, response)
             updated = datetime.strftime(datetime.now(), '%H:%M')
         else:
             cached = self.__get_cached_response(url)
             if cached is None:
-                print(f'Server error code {response.status_code} and cache miss. Exiting.')
-                raise SystemExit(1)
+                if default == None:
+                    print(f'Server error code {response.status_code} and cache miss. Exiting.')
+                    raise SystemExit(1)
+                else:
+                    response = default
+                    updated = datetime.strftime(datetime.now(), '%H:%M')
             else:
                 updated = datetime.strftime(cached.updated, '%H:%M')
                 response = cached.data
@@ -68,22 +73,19 @@ class TransportAPI:
         station object by accessing the first (and only) element in the dict.
         '''
         response, _ = self.__communicate(f'https://v6.db.transport.rest/stations?query={self.__name}')
-        self.__stations = response.json()
+        self.__stations = response # .json()
         if not len(self.__stations) == 1:
                 print(f'Station name not unique or not found')
                 raise SystemExit(1)
         self.__station = self.__stations[next(iter(self.__stations))]
         return self.__station
 
-
-    def get_departure_details(self, id: int):
-        response, timestamp = self.__communicate(f'https://v6.db.transport.rest/stops/{id}/departures?results={self.__departures}&duration={self.__duration}&bus=false&taxi=false')
-        decoded = response.json()['departures']
+    def __process_departures(self, departures):
         # The response is a list of dicts with keys direction (Tutzing:str) delay (seconds:int)
         # when ('2024-09-18T16:23:00+02:00':str) and plannedWhen ('2024-09-18T16:23:00+02:00':str)
         filtered = []
         tripid = {}
-        for d in decoded:
+        for d in departures:
             # Filter out duplicates, the server does sometimes produce these
             if d['tripId'] in tripid:
                 continue
@@ -107,7 +109,20 @@ class TransportAPI:
                 delay = 0 
             filtered.append((d['direction'], depart_in, when, delay, planned))
 
-        return filtered, timestamp
+        return filtered
+
+
+    def get_departure_details(self, id: int):
+        # 
+        default = [("Waiting for DB", 0, "No response from server", 0, "....")]
+        url = f'https://v6.db.transport.rest/stops/{id}/departures?results={self.__departures}&duration={self.__duration}&bus=false&taxi=false'
+        response, timestamp = self.__communicate(url, default=default) 
+        if 'departures' in response:
+            retval = self.__process_departures(response['departures'])
+        else:
+            retval = response
+
+        return retval, timestamp
 
 
     @property
