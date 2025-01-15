@@ -6,7 +6,7 @@ import json
 from loguru import logger
 logger.remove(0)
 
-from bahnapi import Station
+from ris import Station
 
 app = Flask(__name__)
 logger.debug("Starting")
