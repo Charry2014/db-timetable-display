@@ -3,6 +3,7 @@ bahnapi.py - Python script for pulling departure data for a specific station
 This is going to pull the data from the API every minute and update a webpage
 hosted on one of my servers. The page will be displayed in HA dashboard.
 
+Deprecated on 15.01.2025 when DB retired this API.
 '''
 import json
 from datetime import datetime, timezone
