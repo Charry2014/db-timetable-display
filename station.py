@@ -85,9 +85,12 @@ class Station:
             depart_planned = datetime.strptime(j[1], '%Y-%m-%dT%H:%M:%S')
             depart_actual = datetime.strptime(j[2], '%Y-%m-%dT%H:%M:%S')
             #depart_in = int((depart_actual - datetime.now()).seconds / 60) + 1
-            assert depart_actual >= datetime.now() 
-            depart_in_s = depart_actual - datetime.now()
-            depart_in = int(depart_in_s.seconds / 60)
+            if depart_actual >= datetime.now():
+                depart_in_s = depart_actual - datetime.now()
+                depart_in = int(depart_in_s.seconds / 60)
+            else:
+                logger.warning(f"Departure time is in the past {depart_actual} - setting to 0")
+                depart_in = 0
             depart_planned = depart_planned.strftime('%H:%M')
             depart_actual = depart_actual.strftime('%H:%M')
             # Check sanity of the departure time - can return funky values for trains departing now
