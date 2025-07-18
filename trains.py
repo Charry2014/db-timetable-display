@@ -6,7 +6,7 @@ import json
 from mylog import logger
 
 
-from ris import Station
+from station import Station
 
 app = Flask(__name__)
 logger.debug("Starting")
