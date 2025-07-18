@@ -3,21 +3,23 @@ from time import time, sleep
 from datetime import datetime
 import json
 
-from loguru import logger
-logger.remove(0)
+from mylog import logger
+
 
 from ris import Station
 
 app = Flask(__name__)
 logger.debug("Starting")
-station = Station("Zorneding")
-logger.debug("Got station details")
+station_name = "Zorneding"
+station = Station(station_name)
+logger.debug(f"Got station details {station_name} - {station.id}")
 
 def update():
+    
     while True:
-        logger.debug("Updating data")
+        logger.debug(f"Updating departure data for {station_name}")
         data = station.get_departure_details()
-        logger.debug("Got data")
+        logger.debug(f"Got departure data - {data}")
         yield f"data: {data}\n\n"
         sleep(15)
 

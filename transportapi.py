@@ -1,7 +1,7 @@
 import requests
 from datetime import datetime
 from dataclasses import dataclass
-
+from mylog import logger
 
 class TransportAPI:
     # This site has bad IPv6 support. Turn it off.
@@ -41,15 +41,19 @@ class TransportAPI:
         '''
         response = requests.get(url)
         updated = datetime.strftime(datetime.now(), '%H:%M')
+        logger.debug(f"Communicating with {url} - response code {response}")
 
         if response.status_code == 200:
             response = response.json()
             self.__cache_response(url, response)
+        elif response.status_code == 404:
+            logger.debug(f"Server returned 404 for {url}")
+            response = [("Server returned 404. Service not available.", 0, "....")]
         else:
             cached = self.__get_cached_response(url)
             if cached is None:
                 if default == None:
-                    print(f'Server error code {response.status_code} and cache miss. Exiting.')
+                    logger(f'Server error code {response.status_code} and cache miss. Exiting.')
                     raise SystemExit(1)
                 else:
                     response = default
