@@ -85,7 +85,7 @@ class Station:
             depart_planned = datetime.strptime(j[1], '%Y-%m-%dT%H:%M:%S')
             depart_actual = datetime.strptime(j[2], '%Y-%m-%dT%H:%M:%S')
             #depart_in = int((depart_actual - datetime.now()).seconds / 60) + 1
-            assert depart_planned >= datetime.now() 
+            assert depart_actual >= datetime.now() 
             depart_in_s = depart_actual - datetime.now()
             depart_in = int(depart_in_s.seconds / 60)
             depart_planned = depart_planned.strftime('%H:%M')
