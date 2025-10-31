@@ -66,13 +66,18 @@ class Station:
         '''
         '''
         journeys = []
-        for d in departures: 
-            if d['verkehrmittel']['produktGattung'] != 'SBAHN':
-                continue
-            # trains that are on time do not have an 'ezZeit' field
-            if 'ezZeit' not in d:
-                d['ezZeit'] = d['zeit']
-            journeys.append((d['terminus'], d['zeit'], d['ezZeit']))
+        for d in departures:
+            try:
+                logger.debug(f"Processing departure data {d}")
+                if d['verkehrmittel']['produktGattung'] != 'SBAHN':
+                    continue
+                # trains that are on time do not have an 'ezZeit' field
+                if 'ezZeit' not in d:
+                    d['ezZeit'] = d['zeit']
+                journeys.append((d['terminus'], d['zeit'], d['ezZeit']))
+            except Exception as e:
+                logger.error(f"Error processing departure data: {e} - data: {d}")
+                journeys.append((f"{d}", "Error", "0000-00-00T00:00:00"))
 
         retval = []
         count = 0
