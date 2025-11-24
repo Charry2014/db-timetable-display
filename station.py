@@ -69,7 +69,7 @@ class Station:
         for d in departures:
             try:
                 # This log is very informative but too noisy for regular use
-                logger.debug(f"Processing departure data {d}")
+                # logger.debug(f"Processing departure data {d}")
                 if d['verkehrmittel']['produktGattung'] != 'SBAHN':
                     continue
                 # trains that are on time do not have an 'ezZeit' field
