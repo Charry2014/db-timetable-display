@@ -69,7 +69,7 @@ class Station:
         for d in departures:
             try:
                 # This log is very informative but too noisy for regular use
-                # logger.debug(f"Processing departure data {d}")
+                logger.debug(f"Processing departure data {d}")
                 if d['verkehrmittel']['produktGattung'] != 'SBAHN':
                     continue
                 # trains that are on time do not have an 'ezZeit' field
@@ -78,7 +78,6 @@ class Station:
                 journeys.append((d['terminus'], d['zeit'], d['ezZeit']))
             except Exception as e:
                 logger.error(f"Error processing departure data: {e} - data: {d}")
-                journeys.append((f"{d}", "Error", "0000-00-00T00:00:00"))
 
         retval = []
         count = 0
