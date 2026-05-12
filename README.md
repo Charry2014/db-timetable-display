@@ -8,7 +8,7 @@ If you use Deutsche Bahn trains regularly you will be familiar with the importan
 * The `requests` module is used to pull data
 * There is some simple caching of previous returned data as the server returns 500 sometimes
 * `Flask` is used to create the web page
-* The page updates using SSE
+* The page updates with browser polling while the tab is visible
 * The production site is hosted using `waitress`
 * In production the site runs in a Docker container
 * The container is hosted on a Proxmox LXC container
@@ -39,7 +39,7 @@ Choose a directory on the server and then -
 
 1. `git clone git@github.com:Charry2014/db-timetable-display.git` or `git pull` to update
 1. `cp db-timetable-display/docker-compose.yml .`
-1. `docker-compose up -d`
+1. `docker compose up -d`
 
 Uses the `execute.sh` script to install what is needed and run the server.
 
@@ -48,4 +48,10 @@ Uses the `execute.sh` script to install what is needed and run the server.
 * Abstract away the station name from the code, as well as the hard coded destinations for the east-west split.
 * Clean up the time zones
 
-DONE - Move to docker-compose
+DONE - Move to docker compose
+
+# Testing
+
+Run unit tests from the project root:
+
+1. `./venv/bin/python -m unittest discover -s tests -p "test_*.py"`

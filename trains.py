@@ -1,7 +1,4 @@
 from flask import Flask, render_template, Response
-from time import time, sleep
-from datetime import datetime
-import json
 
 from mylog import logger
 
@@ -15,13 +12,10 @@ station = Station(station_name)
 logger.debug(f"Got station details {station_name} - {station.id}")
 
 def update():
-    
-    while True:
-        logger.debug(f"Updating departure data for {station_name}")
-        data = station.get_departure_details()
-        logger.debug(f"Got departure data - {data}")
-        yield f"data: {data}\n\n"
-        sleep(15)
+    logger.debug(f"Updating departure data for {station_name}")
+    data = station.get_departure_details()
+    logger.debug(f"Got departure data - {data}")
+    return data
 
 @app.route('/')
 def index():
@@ -29,9 +23,8 @@ def index():
 
 @app.route('/update')
 def flask_update():
-    logger.debug("Starting Flask update")
-    while True:
-        return Response(update(), mimetype='text/event-stream')
+    logger.debug("Serving departure update")
+    return Response(update(), mimetype='application/json')
 
 if __name__ == '__main__':
     app.run(port=5123, debug=True)

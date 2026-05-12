@@ -12,8 +12,15 @@ class TransportAPI:
         Returns a tuple with the response and the time of the request if successful.
         If the request fails then we return the status code. and time of the request.
         '''
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+        }
         logger.debug(f"Communicating with {url}")
-        response = requests.get(url)
+        response = requests.get(url, headers=headers)
         updated = datetime.strftime(datetime.now(), '%H:%M')
         logger.debug(f"Communicating ended - response code {response.status_code} at {updated}")
 

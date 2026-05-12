@@ -43,10 +43,11 @@
 <tbody id="table-body-west"> </tbody>
     </table>
     <script>
-        const eventSource = new EventSource('/update');
-        eventSource.onmessage = (event) => {
-            const data = JSON.parse(event.data);
+        const POLL_INTERVAL_MS = 15000;
+        let pollTimerId = null;
+        let updateInProgress = false;
 
+        const renderTable = (data) => {
             const timestamp = document.getElementById('update-timestamp');
             timestamp.textContent = data.timestamp;
             const title1 = document.getElementById('direction1_title');
@@ -81,6 +82,49 @@
                 tbodyeast.appendChild(row);
             });
         };
+
+        const fetchAndRender = async () => {
+            if (document.visibilityState !== 'visible' || updateInProgress) return;
+            updateInProgress = true;
+            try {
+                const response = await fetch('/update', { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                renderTable(data);
+            } catch (err) {
+                console.error('Failed to update timetable', err);
+            } finally {
+                updateInProgress = false;
+            }
+        };
+
+        const startPolling = () => {
+            if (pollTimerId !== null) return;
+            fetchAndRender();
+            pollTimerId = window.setInterval(fetchAndRender, POLL_INTERVAL_MS);
+        };
+
+        const stopPolling = () => {
+            if (pollTimerId === null) return;
+            window.clearInterval(pollTimerId);
+            pollTimerId = null;
+        };
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                startPolling();
+            } else {
+                stopPolling();
+            }
+        });
+
+        window.addEventListener('beforeunload', stopPolling);
+
+        if (document.visibilityState === 'visible') {
+            startPolling();
+        }
     </script>
 </body>
 </html>
