@@ -5,7 +5,7 @@ services:
     environment:
       - TZ=Europe/Berlin
     ports:
-      - 5124:8080
+      - 5123:8080
     working_dir: /timetable
     volumes:
       - ./db-timetable-display:/timetable
