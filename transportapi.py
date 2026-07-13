@@ -1,10 +1,12 @@
-import requests
+# import requests
+from curl_cffi import requests
+
 from datetime import datetime
 from mylog import logger
 
 class TransportAPI:
     # This site has bad IPv6 support. Turn it off.
-    requests.packages.urllib3.util.connection.HAS_IPV6 = False
+    # requests.packages.urllib3.util.connection.HAS_IPV6 = False
 
     def communicate(self, url):
         '''Handle communication with the server - if the server responds 200 then all good.
@@ -34,7 +36,12 @@ class TransportAPI:
             "Connection": "keep-alive",
         }
         logger.debug(f"Communicating with {url}")
-        response = requests.get(url, headers=headers)
+        # response = requests.get(url, headers=headers)
+        response = requests.get(
+            url,
+            headers=headers,
+            impersonate="chrome136"
+        )
         updated = datetime.strftime(datetime.now(), '%H:%M')
         logger.debug(f"Communicating ended - response code {response.status_code} at {updated}")
 
