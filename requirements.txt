@@ -1,4 +1,4 @@
 flask
 loguru
-requests
+curl_cffi
 waitress
