@@ -27,4 +27,4 @@ def flask_update():
     return Response(update(), mimetype='application/json')
 
 if __name__ == '__main__':
-    app.run(port=5123, debug=True)
+    app.run(port=5124, debug=True)
