@@ -1,4 +1,5 @@
 flask
 loguru
-curl_cffi
+# curl_cffi
+playwright
 waitress
