@@ -60,7 +60,7 @@ station_name = "Zorneding"
 station_id = "8006671"
 # station = Station(station_name, station_id)
 url = f'https://www.bahn.de/web/api/reiseloesung/abfahrten?ortExtId={station_id}&verkehrsMittel[]=SBAHN'
-port = 5124
+port = 5123
 
 def init():
     global bahn_browser
