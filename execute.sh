@@ -17,6 +17,8 @@ apt-get update -y
 apt-get install -y google-chrome-stable
 
 pip install -r requirements.txt
-exec waitress-serve --listen=0.0.0.0:8180 trains:app
+# exec waitress-serve --listen=0.0.0.0:8180 trains:app
+source venv/bin/activate
 
+python3 trains.py
 
