@@ -1,12 +1,16 @@
 services:
   timetable:
-    image: ubuntu:24.04
+    build: .
+    image: bahn-api:latest
     container_name: timetable_app
+    restart: unless-stopped
     environment:
       - TZ=Europe/Berlin
     ports:
-      - 5123:5123
-    working_dir: /timetable
-    volumes:
-      - .:/timetable
-    command: /bin/bash -c /timetable/execute.sh
+      - "5123:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s

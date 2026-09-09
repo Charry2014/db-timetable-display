@@ -4,51 +4,65 @@ If you use Deutsche Bahn trains regularly you will be familiar with the importan
 
 # Overview
 
-* The project uses the https://v6.db.transport.rest/ API to source train data, not the DB official one
-* The `requests` module is used to pull data
-* There is some simple caching of previous returned data as the server returns 500 sometimes
-* `Flask` is used to create the web page
+* The project reads departure data from the Bahn web API (`bahn.de/web/api/reiseloesung/abfahrten`)
+* A headless Chrome browser driven by `Playwright` fetches the data, so Google Chrome must be installed wherever the app runs
+* `Flask` serves the timetable page and the `/update` JSON endpoint
 * The page updates with browser polling while the tab is visible
-* The production site is hosted using `waitress`
-* In production the site runs in a Docker container
-* The container is hosted on a Proxmox LXC container
-* Waitress hosts the site on the standard port 8080 and the Docker command line maps this to 5123
-
-
-# Introduction
-
-This is an example of reading data from the API, not a very good one as the error handling is very basic and the abstraction is almost non-existant, but the parsing of this is OK and preparing it for display is nice and simple. There's some hard-coded time zone information and the station names, but this project stitches together a few solutions to hidden gotchas.
-
-The official DB API has a number of issues - a developer account is needed to get the authentication keys. The structure of data recieved is very hard to work with and the actual train delay information is hard to find.
+* `Waitress` hosts the site in production
+* The production site runs in a Docker container hosted on a Proxmox LXC
+* Home Assistant connects to host port 5123; in production this maps to container port 8080
+* Development uses a Compose override that runs `trains.py` directly on container port 5123
 
 # Docker
 
-The container is based on Ubuntu 24.04 and installs Python 3 and pip the usual way. There is a trick with the virtual environment that is doesn't activate in a Docker container the same way it would on a desktop. The `activate` is faked using the PATH variable, but the path to `waitress` has to be given explicitly.
+One `Dockerfile`, two Compose files:
 
-## Dockerfile
-The commands to build and run the container -
+* `docker-compose.yml` (production, default) builds an image that contains the system packages, Google Chrome, the Python dependencies, and the application code. Nothing is installed when the container starts, so restarts are fast and independent of the network. Waitress listens on container port 8080 and Compose publishes host port 5123 to it.
+* `docker-compose.dev.yml` (development override) bind-mounts the working tree over `/timetable` and runs `trains.py` directly on port 5123. It is for quick iteration only and must never be used in production, because there the mounted code would shadow the baked image.
 
-1. `docker build -t timetable .`
-1. `docker run -p5123:8080 -d --restart unless-stopped timetable`
+The application layer is the last layer in the `Dockerfile`, so a code-only change rebuilds just that layer while the apt and pip layers come from cache. Changes to `requirements.txt` rebuild the Python dependency layer, and changes to the `Dockerfile` itself rebuild the system layers including Chrome.
 
-## Docker Compose
-Not really sure if this is the best way to do this, fairly sure it is not, but this works even if it is clunky.
-The container should again be available on port 5123 but in my testing it remained resolutely on 8080.
+## Updating production
 
-Choose a directory on the server and then -
+Run these from the repository root on the Proxmox LXC:
 
-1. `git clone git@github.com:Charry2014/db-timetable-display.git` or `git pull` to update
-1. `cp db-timetable-display/docker-compose.yml .`
-1. `docker compose up -d`
+1. `git pull`
+1. `docker compose up -d --build`
+1. `docker compose ps`
+1. `docker compose logs --tail=100 timetable`
+1. `curl -s http://localhost:5123/update`
 
-Uses the `execute.sh` script to install what is needed and run the server.
+Notes:
+
+* `docker compose restart` only restarts the existing container with the existing image. It is **not** a code update. Use `docker compose up -d --build` whenever source code or `requirements.txt` changed.
+* A code-only rebuild normally finishes in seconds because only the final `COPY` layer is rebuilt.
+* System package and Chrome updates are picked up on the next image rebuild, since the apt repository is not version pinned. Rebuilt images should be spot-checked before going live.
+
+## First migration from the old setup
+
+The previous Compose file started a plain `ubuntu:24.04` container and ran `execute.sh`, which installed Python, Chrome, and pip packages on every container start. That script now lives in `deprecated/`. To migrate on the server:
+
+1. Stop and remove the old container: `docker compose down` (from the old checkout/compose file)
+1. `git pull` the new code
+1. `docker compose up -d --build`
+1. Verify with `docker compose ps` (should show `timetable_app` healthy), `curl -s http://localhost:5123/`, and `curl -s http://localhost:5123/update`
+1. Keep the old Ubuntu image around until the new service has run successfully for a day, then remove it as optional cleanup
+
+## Rollback
+
+Check out the last known-good commit (`git checkout <commit>`) and run `docker compose up -d --build` again. Normal updates never require deleting volumes or destructive Docker cleanup commands.
+
+## Development
+
+1. `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d`
+1. `docker compose -f docker-compose.yml -f docker-compose.dev.yml restart timetable`
+
+The override mounts the working tree into the container and runs `trains.py` directly, so source changes need only a container restart to be served. Port 5123 maps to container port 5123. Do not use this configuration in production.
 
 # To-do
 
 * Abstract away the station name from the code, as well as the hard coded destinations for the east-west split.
 * Clean up the time zones
-
-DONE - Move to docker compose
 
 # Testing
 

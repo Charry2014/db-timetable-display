@@ -14,7 +14,7 @@ This project displays live Deutsche Bahn S-Bahn departures from Zorneding, Germa
 
 ## Active runtime architecture
 
-- `trains.py` creates the Flask application, defines station `Zorneding` (`8006671`), builds the Bahn API URL, initializes `BahnBrowser`, and starts Waitress on `0.0.0.0:5123` when executed directly.
+- `trains.py` creates the Flask application, defines station `Zorneding` (`8006671`), builds the Bahn API URL, initializes `BahnBrowser` lazily through a lock-protected `init()` called from `update()`, and starts Waitress on `0.0.0.0:5123` when executed directly. The lazy init keeps WSGI imports such as `waitress-serve trains:app` safe.
 - `bahn_browser.py` owns the synchronous Playwright browser in a dedicated daemon thread. Flask request threads place URLs on a queue and wait for the result.
 - `departures.py` filters `SBAHN` entries, fills missing actual times, calculates minutes and delay, sorts departures, limits results to 20, and partitions destinations into east and west groups.
 - `templates/trains.html` renders the table and polls `/update` every 15 seconds while visible.
@@ -32,11 +32,14 @@ This project displays live Deutsche Bahn S-Bahn departures from Zorneding, Germa
 
 Keep the frontend keys `timestamp`, `direction1_title`, `direction2_title`, `trains_east`, and `trains_west` stable.
 
-## Current Docker setup
+## Docker deployment
 
-The default `docker-compose.yml` is the older runtime: it starts `ubuntu:24.04`, bind-mounts the repository at `/timetable`, and runs `/timetable/execute.sh`. That script installs Python, Chrome, and dependencies at container startup, then runs `trains.py` on port 5123. The standalone `Dockerfile` builds an Ubuntu image and exposes 8080 for Waitress, but its current image does not install Chrome; treat it as a separate, incomplete deployment path until explicitly changed.
-
-Do not assume the later baked-image or Portainer workflow exists in this checkout. Verify the checked-out files before changing deployment behavior.
+- Production (`docker-compose.yml`) builds a baked image (`bahn-api:latest`) from the `Dockerfile`: Ubuntu 24.04, Google Chrome (required by `bahn_browser.py`'s `channel="chrome"` launch), Python dependencies in `/opt/venv` on `PATH`, and application code in `/timetable`. Waitress serves on container port 8080 via `waitress-serve trains:app`; Compose publishes host `5123:8080`, sets `restart: unless-stopped` and `TZ=Europe/Berlin`, and runs an HTTP healthcheck against `/`.
+- Code updates on the server are `docker compose up -d --build`, not `docker compose restart`, which reuses the existing image. The `COPY . .` layer is last, so code-only changes reuse the cached apt and pip layers.
+- Development (`docker-compose.dev.yml`) is an override for `docker compose -f docker-compose.yml -f docker-compose.dev.yml`: it bind-mounts the source over `/timetable`, runs `python3 trains.py` on container port 5123, and disables the healthcheck. Never use it in production; the bind mount would shadow the baked image.
+- `.dockerignore` keeps `venv/`, `.git/`, tests, docs, and legacy code out of the build context.
+- `execute.sh` is retired to `deprecated/` and must not be referenced by any active Compose configuration.
+- The venv is deliberately baked at `/opt/venv`, not `/timetable/venv`, so the development bind mount cannot shadow it with the host's virtual environment.
 
 ## Development and validation
 
@@ -46,10 +49,11 @@ Use the existing virtual environment for Python commands:
 rtk ./venv/bin/python -m unittest discover -s tests -p "test_*.py"
 rtk python3 trains.py
 rtk docker compose config
-rtk docker compose up -d
+rtk docker compose -f docker-compose.yml -f docker-compose.dev.yml config
+rtk docker compose up -d --build
 ```
 
-There is no configured lint or type-check command. Tests should mock the external Bahn API and browser rather than requiring live network access. The current `tests/test_trains.py` references the removed `trains.station` path and is expected to need maintenance before it passes.
+There is no configured lint or type-check command. Tests should mock the external Bahn API and browser rather than requiring live network access.
 
 ## Code guidelines
 

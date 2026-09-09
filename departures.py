@@ -12,8 +12,12 @@ def process_departures(data:dict):
     timestamp = datetime.strftime(datetime.now(), '%H:%M')
 
     if 'error' in data:
-        retval = [(f"{timestamp}", f"Err {data['body']}", f"Error code {data['error']}", 0, "....")]
-        response = data['body']
+        retval = json.dumps({"timestamp": f"Error {timestamp}",
+                                "direction1_title": "Direction Ebersberg",
+                                "direction2_title": "Direction Munich",
+                                "trains_east": [],
+                                "trains_west": [("Error", data['body'], f"Error code {data['error']}", 0, "....")]})
+        return retval
     else:
         trains = __get_departure_details(data['entries'])
         trains_east = [train for train in trains if train[0] in ['Ebersberg(Oberbay)', 'Grafing Bahnhof']]

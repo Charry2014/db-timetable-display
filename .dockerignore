@@ -1,0 +1,38 @@
+# Git and CI metadata
+.git/
+.gitignore
+.gitattributes
+
+# Editor and agent state
+.vscode/
+.kilo/
+.serena/
+AGENTS.md
+
+# Local virtual environment and Python artifacts
+venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# Tests
+tests/
+
+# Legacy code (not imported by the runtime)
+deprecated/
+station.py
+transportapi.py
+bahnapi_DEPRECATED.py
+
+# Documentation and licensing
+README.md
+LICENSE
+
+# Docker and Compose configuration
+Dockerfile
+docker-compose.yml
+docker-compose.dev.yml
+
+# macOS and editor noise
+.DS_Store
+*.code-workspace

@@ -1,0 +1,9 @@
+services:
+  timetable:
+    volumes: !override
+      - .:/timetable
+    ports: !override
+      - "5123:5123"
+    command: python3 trains.py
+    healthcheck: !override
+      disable: true

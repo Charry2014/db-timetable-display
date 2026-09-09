@@ -41,6 +41,8 @@ Worker thread #1
 
 '''
 
+import threading
+
 from flask import Flask, render_template, Response
 from waitress import serve
 
@@ -55,6 +57,7 @@ logger.debug("Starting")
 
 app = Flask(__name__)
 bahn_browser = None
+init_lock = threading.Lock()
 
 station_name = "Zorneding"
 station_id = "8006671"
@@ -64,12 +67,14 @@ port = 5123
 
 def init():
     global bahn_browser
-    if bahn_browser is None:
-        bahn_browser = BahnBrowser()
+    with init_lock:
+        if bahn_browser is None:
+            bahn_browser = BahnBrowser()
 
 def update():
     '''Get the latest departure data for the station from the station object and return it as a JSON response.'''
     logger.debug(f"Updating departure data for {station_name}")
+    init()
     data = bahn_browser.get(url)
     logger.debug(f"Got departure data - {data}")
     departures = process_departures(data)
