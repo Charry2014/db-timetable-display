@@ -1,5 +1,8 @@
 flask
 loguru
-# curl_cffi
-playwright
-waitress
+
+#playwright
+#waitress
+playwright==1.60.0
+greenlet==3.2.5
+pyee==13.0.1
