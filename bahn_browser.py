@@ -35,10 +35,35 @@ class BahnBrowser:
 
             browser = p.chromium.launch(
                 channel="chrome",
-                headless=False
+                headless=True
             )
 
             page = browser.new_page()
+
+            logger.info(f"Playwright browser type: {p.chromium.name}")
+            logger.info(f"Browser version: {browser.version}")
+
+            logger.info(
+                "Browser environment: %s",
+                page.evaluate("""() => ({
+                    userAgent: navigator.userAgent,
+                    webdriver: navigator.webdriver,
+                    platform: navigator.platform,
+                    languages: navigator.languages
+                })""")
+            )
+
+            def log_request(request):
+                if "bahn.de" in request.url:
+                    logger.info(f"Bahn request: {request.method} {request.url}")
+                    logger.info(f"Bahn request headers: {request.all_headers()}")
+
+            def log_response(response):
+                if "bahn.de" in response.url:
+                    logger.info(f"Bahn response: {response.status} {response.url}")
+
+            page.on("request", log_request)
+            page.on("response", log_response)            
 
             logger.debug("Chrome ready")
 

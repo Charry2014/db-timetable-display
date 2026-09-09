@@ -42,6 +42,6 @@ USER timetable
 
 EXPOSE 8080
 
-# CMD ["waitress-serve", "--listen=0.0.0.0:8080", "trains:app"]
-ENTRYPOINT ["tini", "--"]
-CMD [ "xvfb-run", "-a", "waitress-serve", "--listen=0.0.0.0:8080", "trains:app" ]
+CMD ["waitress-serve", "--listen=0.0.0.0:8080", "trains:app"]
+#ENTRYPOINT ["tini", "--"]
+#CMD [ "xvfb-run", "-a", "waitress-serve", "--listen=0.0.0.0:8080", "trains:app" ]
