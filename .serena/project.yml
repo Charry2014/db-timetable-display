@@ -1,0 +1,7 @@
+language: python
+project_name: bahn-api
+ignore_all_files_in_gitignore: true
+ignored_paths:
+  - venv/**
+  - __pycache__/**
+  - deprecated/**
