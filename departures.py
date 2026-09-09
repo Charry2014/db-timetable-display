@@ -12,7 +12,7 @@ def process_departures(data:dict):
     timestamp = datetime.strftime(datetime.now(), '%H:%M')
 
     if 'error' in data:
-        retval = [(f"{timestamp}", f"Err {data}", f"Error code {data}", 0, "....")]
+        retval = [(f"{timestamp}", f"Err {data['body']}", f"Error code {data['error']}", 0, "....")]
         response = data['body']
     else:
         trains = __get_departure_details(data['entries'])
