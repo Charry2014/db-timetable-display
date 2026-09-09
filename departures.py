@@ -16,7 +16,7 @@ def process_departures(data:dict):
                                 "direction1_title": "Direction Ebersberg",
                                 "direction2_title": "Direction Munich",
                                 "trains_east": [],
-                                "trains_west": [("Error", data['body'], f"Error code {data['error']}", 0, "....")]})
+                                "trains_west": [("Error", data['body'], f"Error code {data['error']}", 0, f"{timestamp}")]})
         return retval
     else:
         trains = __get_departure_details(data['entries'])
