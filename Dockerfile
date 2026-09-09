@@ -13,7 +13,7 @@ RUN apt-get update \
         python3 \
         python3-pip \
         python3-venv \
-        xvfb xauth \
+        xvfb xauth tini \
     && curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
         | gpg --dearmor -o /usr/share/keyrings/google-linux-signing-keyring.gpg \
     && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-linux-signing-keyring.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
@@ -43,4 +43,5 @@ USER timetable
 EXPOSE 8080
 
 # CMD ["waitress-serve", "--listen=0.0.0.0:8080", "trains:app"]
+ENTRYPOINT ["tini", "--"]
 CMD [ "xvfb-run", "-a", "waitress-serve", "--listen=0.0.0.0:8080", "trains:app" ]
