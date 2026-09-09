@@ -60,8 +60,16 @@ class BahnBrowser:
 
                     if response.status == 200:
                         result = response.json()
+                    elif response.status == 403:
+                        logger.error(f'Server returned 403 Forbidden')
+                        logger.error(f"Response text: {response.text()}")
+
+                        result = {
+                            "error": response.status,
+                            "body": response.text()
+                        }
                     else:
-                        logger.error(f'Server returned unexpected code {response.status_code}.')
+                        logger.error(f'Server returned unexpected code {response.status}.')
                         logger.error(f"Response text: {response.text()}")
 
                         result = {
