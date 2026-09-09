@@ -35,7 +35,7 @@ class BahnBrowser:
 
             browser = p.chromium.launch(
                 channel="chrome",
-                headless=True
+                headless=False
             )
 
             page = browser.new_page()
