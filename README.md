@@ -4,20 +4,21 @@ If you use Deutsche Bahn trains regularly you will be familiar with the importan
 
 # Overview
 
-* The project reads departure data from the Bahn web API (`bahn.de/web/api/reiseloesung/abfahrten`)
-* A headless Chrome browser driven by `Playwright` fetches the data, so Google Chrome must be installed wherever the app runs
+* The project reads departure data from a local departures service (`http://10.0.0.204:8765/departures`) that delivers JSON in the same structure as the Bahn web API
+* The Flask server fetches that JSON directly with `urllib`, so no browser or Playwright is involved
 * `Flask` serves the timetable page and the `/update` JSON endpoint
 * The page updates with browser polling while the tab is visible
 * `Waitress` hosts the site in production
 * The production site runs in a Docker container hosted on a Proxmox LXC
 * Home Assistant connects to host port 5123; in production this maps to container port 8080
 * Development uses a Compose override that runs `trains.py` directly on container port 5123
+* The container must be able to reach the departures service on the local network
 
 # Docker
 
 One `Dockerfile`, two Compose files:
 
-* `docker-compose.yml` (production, default) builds an image that contains the system packages, Google Chrome, the Python dependencies, and the application code. Nothing is installed when the container starts, so restarts are fast and independent of the network. Waitress listens on container port 8080 and Compose publishes host port 5123 to it.
+* `docker-compose.yml` (production, default) builds an image that contains the system packages, the Python dependencies, and the application code. Nothing is installed when the container starts, so restarts are fast and independent of the network. Waitress listens on container port 8080 and Compose publishes host port 5123 to it.
 * `docker-compose.dev.yml` (development override) bind-mounts the working tree over `/timetable` and runs `trains.py` directly on port 5123. It is for quick iteration only and must never be used in production, because there the mounted code would shadow the baked image.
 
 The application layer is the last layer in the `Dockerfile`, so a code-only change rebuilds just that layer while the apt and pip layers come from cache. Changes to `requirements.txt` rebuild the Python dependency layer, and changes to the `Dockerfile` itself rebuild the system layers including Chrome.
@@ -36,7 +37,7 @@ Notes:
 
 * `docker compose restart` only restarts the existing container with the existing image. It is **not** a code update. Use `docker compose up -d --build` whenever source code or `requirements.txt` changed.
 * A code-only rebuild normally finishes in seconds because only the final `COPY` layer is rebuilt.
-* System package and Chrome updates are picked up on the next image rebuild, since the apt repository is not version pinned. Rebuilt images should be spot-checked before going live.
+* System package updates are picked up on the next image rebuild. Rebuilt images should be spot-checked before going live.
 
 ## First migration from the old setup
 

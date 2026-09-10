@@ -20,9 +20,6 @@ tests/
 
 # Legacy code (not imported by the runtime)
 deprecated/
-station.py
-transportapi.py
-bahnapi_DEPRECATED.py
 
 # Documentation and licensing
 README.md

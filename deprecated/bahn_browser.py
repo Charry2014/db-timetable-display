@@ -1,5 +1,6 @@
 ''' Uses the DB API to pull data about local trains.
 '''
+from multiprocessing import context
 import threading
 import queue
 import time
@@ -38,20 +39,33 @@ class BahnBrowser:
                 headless=True
             )
 
+            context = browser.new_context(
+                locale="de-DE",
+                user_agent=(
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/153.0.0.0 Safari/537.36"
+                ),
+                extra_http_headers={
+                    "sec-ch-ua-platform": '"macOS"',
+                },
+            )
+
             page = browser.new_page()
 
             logger.info(f"Playwright browser type: {p.chromium.name}")
             logger.info(f"Browser version: {browser.version}")
 
-            logger.info(
-                "Browser environment: %s",
-                page.evaluate("""() => ({
+            browser_environment = page.evaluate("""
+                () => ({
                     userAgent: navigator.userAgent,
                     webdriver: navigator.webdriver,
                     platform: navigator.platform,
                     languages: navigator.languages
-                })""")
-            )
+                })
+            """)
+
+            logger.info(f"Browser environment: {browser_environment}")
 
             def log_request(request):
                 if "bahn.de" in request.url:

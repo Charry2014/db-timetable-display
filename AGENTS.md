@@ -14,27 +14,25 @@ This project displays live Deutsche Bahn S-Bahn departures from Zorneding, Germa
 
 ## Active runtime architecture
 
-- `trains.py` creates the Flask application, defines station `Zorneding` (`8006671`), builds the Bahn API URL, initializes `BahnBrowser` lazily through a lock-protected `init()` called from `update()`, and starts Waitress on `0.0.0.0:5123` when executed directly. The lazy init keeps WSGI imports such as `waitress-serve trains:app` safe.
-- `bahn_browser.py` owns the synchronous Playwright browser in a dedicated daemon thread. Flask request threads place URLs on a queue and wait for the result.
+- `trains.py` creates the Flask application, defines station `Zorneding`, fetches departures JSON from the departures service URL `http://10.0.0.204:8765/departures` via `fetch_departures()` (stdlib `urllib`, 30s timeout), and starts Waitress on `0.0.0.0:5123` when executed directly. No browser or worker thread is involved.
 - `departures.py` filters `SBAHN` entries, fills missing actual times, calculates minutes and delay, sorts departures, limits results to 20, and partitions destinations into east and west groups.
 - `templates/trains.html` renders the table and polls `/update` every 15 seconds while visible.
 - `mylog.py` configures Loguru to write debug-level logs to stdout.
-- `station.py`, `transportapi.py`, `bahnapi_DEPRECATED.py`, and files under `deprecated/` are legacy paths. Do not use them for new runtime code.
+- Files under `deprecated/` (including `bahn_browser.py`, `station.py`, `transportapi.py`, `execute.sh`, and `bahnapi_DEPRECATED.py`) are retired implementations. Do not use them for new runtime code.
 
 ## Runtime data flow
 
 1. The browser loads `/` and receives `templates/trains.html`.
 2. The page requests `/update`.
 3. `trains.flask_update` calls `trains.update`.
-4. `trains.update` requests the fixed Bahn URL through `BahnBrowser`.
-5. The Playwright worker calls `page.goto`, parses successful JSON, or returns an `error` and `body` dictionary.
-6. `process_departures` serializes the response for the frontend.
+4. `trains.update` fetches the departures service URL through `fetch_departures`, which returns the parsed JSON on success or an `error` and `body` dictionary otherwise.
+5. `process_departures` serializes the response for the frontend.
 
 Keep the frontend keys `timestamp`, `direction1_title`, `direction2_title`, `trains_east`, and `trains_west` stable.
 
 ## Docker deployment
 
-- Production (`docker-compose.yml`) builds a baked image (`bahn-api:latest`) from the `Dockerfile`: Ubuntu 24.04, Google Chrome (required by `bahn_browser.py`'s `channel="chrome"` launch), Python dependencies in `/opt/venv` on `PATH`, and application code in `/timetable`. Waitress serves on container port 8080 via `waitress-serve trains:app`; Compose publishes host `5123:8080`, sets `restart: unless-stopped` and `TZ=Europe/Berlin`, and runs an HTTP healthcheck against `/`.
+- Production (`docker-compose.yml`) builds a baked image (`bahn-api:latest`) from the `Dockerfile`: Ubuntu 24.04, Python dependencies in `/opt/venv` on `PATH`, and application code in `/timetable`. Waitress serves on container port 8080 via `waitress-serve trains:app`; Compose publishes host `5123:8080`, sets `restart: unless-stopped` and `TZ=Europe/Berlin`, and runs an HTTP healthcheck against `/`. The container must be able to reach the departures service at `10.0.0.204:8765`.
 - Code updates on the server are `docker compose up -d --build`, not `docker compose restart`, which reuses the existing image. The `COPY . .` layer is last, so code-only changes reuse the cached apt and pip layers.
 - Development (`docker-compose.dev.yml`) is an override for `docker compose -f docker-compose.yml -f docker-compose.dev.yml`: it bind-mounts the source over `/timetable`, runs `python3 trains.py` on container port 5123, and disables the healthcheck. Never use it in production; the bind mount would shadow the baked image.
 - `.dockerignore` keeps `venv/`, `.git/`, tests, docs, and legacy code out of the build context.
@@ -57,7 +55,7 @@ There is no configured lint or type-check command. Tests should mock the externa
 
 ## Code guidelines
 
-- Keep Playwright confined to `BahnBrowser`'s worker thread.
+- Keep `fetch_departures` tolerant of upstream failures and preserve the `error`/`body` contract consumed by `process_departures`.
 - Preserve the response shape consumed by the JavaScript template.
 - Preserve Europe/Berlin timezone behavior from the container `TZ` setting.
 - Avoid changing the hard-coded station and direction behavior unless tests and documentation are updated together.

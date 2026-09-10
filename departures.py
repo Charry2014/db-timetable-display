@@ -6,7 +6,7 @@ from mylog import logger
 
 def process_departures(data:dict):
     '''
-    Takes a dictionary from the bahn_browser and returns a JSON string with the departure details for the station.
+    Takes a dictionary from the departures service and returns a JSON string with the departure details for the station.
     'Grafing Bahnhof', (Depart in) 8, '17:40', (Delay) 32, '17:08'
     '''
     timestamp = datetime.strftime(datetime.now(), '%H:%M')
