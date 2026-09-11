@@ -2,6 +2,10 @@ Read the DB timetables through a third party API and make a nice display of the 
 
 If you use Deutsche Bahn trains regularly you will be familiar with the importance of having up-to-date departure information ;-)
 
+Deutsche Bahn’s public web API is protected by Akamai bot-detection rules that can return 403 OPS_BLOCKED based on characteristics of the requesting environment, not merely its public IP address or request rate. Despite using the same LAN and egress IP, matching Chrome and Playwright versions, supplying browser headers and cookies, and testing both Docker containers and the underlying Linux VM, requests from Linux remained blocked while native requests from macOS succeeded. Rather than continue attempting to reproduce a trusted network fingerprint in Docker, the project now uses a lightweight relay running directly on macOS - an old Mac Mini. The main Docker-hosted application requests data from this relay over the LAN, and the relay performs the on-demand Bahn request using native macOS curl, returning the resulting JSON with a short cache to suppress duplicate requests.
+
+It would be hugely beneficial if DB would publish a clear mechanism by which such hobby projects can work effectively - but for now, this is where we are.
+
 # Overview
 
 * The project reads departure data from a local departures relay (`macmini/bahnrelay.py`) running on the Mac Mini at `http://10.0.0.204:8765/departures?station=<eva>`; it delivers JSON in the same structure as the Bahn web API
