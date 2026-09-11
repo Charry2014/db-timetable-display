@@ -5,27 +5,46 @@ import subprocess
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlsplit
 
 
 LISTEN_ADDRESS = "0.0.0.0"
 LISTEN_PORT = 8765
 
-BAHN_URL = (
-    "https://www.bahn.de/web/api/reiseloesung/abfahrten"
-    "?ortExtId=8006671"
-    "&verkehrsMittel%5B%5D=SBAHN"
-)
-
-# Avoid several browser requests causing several Bahn requests simultaneously.
+# Cache each station's response separately so parallel page polls do not
+# cause several Bahn requests simultaneously.
 CACHE_SECONDS = 15
 CURL_TIMEOUT_SECONDS = 20
 
 cache_lock = threading.Lock()
-cached_body = None
-cached_at = 0.0
+cache = {}
 
 
-def fetch_from_bahn():
+def bahn_url(station):
+    """Build the Bahn departures URL for one station code."""
+
+    return (
+        "https://www.bahn.de/web/api/reiseloesung/abfahrten"
+        f"?ortExtId={station}"
+        "&verkehrsMittel%5B%5D=SBAHN"
+    )
+
+
+def parse_station(query):
+    """Extract the station parameter from a request query string."""
+
+    values = parse_qs(query).get("station")
+
+    return values[0] if values else None
+
+
+def is_valid_station(station):
+    """Only EVA station numbers (plain digit strings) are accepted."""
+
+    return station is not None and station.isdigit()
+
+
+def fetch_from_bahn(station):
     """Fetch departure data using the native macOS curl executable."""
 
     command = [
@@ -39,7 +58,7 @@ def fetch_from_bahn():
         "-",
         "--write-out",
         "\n%{http_code}",
-        BAHN_URL,
+        bahn_url(station),
     ]
 
     result = subprocess.run(
@@ -82,28 +101,36 @@ def fetch_from_bahn():
     return body
 
 
-def get_departures():
-    """Return cached data or perform a new request."""
-
-    global cached_body
-    global cached_at
+def get_departures(station):
+    """Return cached data for one station or perform a new request."""
 
     with cache_lock:
+        entry = cache.get(station)
+
+        if entry is None:
+            entry = {
+                "body": None,
+                "cached_at": 0.0,
+                "lock": threading.Lock(),
+            }
+            cache[station] = entry
+
+    with entry["lock"]:
         now = time.monotonic()
 
-        if cached_body is not None and now - cached_at < CACHE_SECONDS:
-            return cached_body, True
+        if entry["body"] is not None and now - entry["cached_at"] < CACHE_SECONDS:
+            return entry["body"], True
 
-        body = fetch_from_bahn()
-        cached_body = body
-        cached_at = time.monotonic()
+        body = fetch_from_bahn(station)
+        entry["body"] = body
+        entry["cached_at"] = time.monotonic()
 
         return body, False
 
 
 class BahnRelayHandler(BaseHTTPRequestHandler):
 
-    server_version = "BahnRelay/1.0"
+    server_version = "BahnRelay/1.1"
 
     def send_body(self, status_code, body, content_type):
         if isinstance(body, str):
@@ -125,7 +152,8 @@ class BahnRelayHandler(BaseHTTPRequestHandler):
         )
 
     def do_GET(self):
-        path = self.path.split("?", 1)[0]
+        split = urlsplit(self.path)
+        path = split.path
 
         if path == "/health":
             self.send_json(
@@ -138,12 +166,31 @@ class BahnRelayHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/departures":
+            station = parse_station(split.query)
+
+            if not is_valid_station(station):
+                print(
+                    "{} /departures: 400 (missing or invalid station parameter)".format(
+                        self.client_address[0],
+                    )
+                )
+
+                self.send_json(
+                    400,
+                    {
+                        "status": "ERROR",
+                        "message": "Use /departures?station=<eva number>",
+                    },
+                )
+                return
+
             try:
-                body, from_cache = get_departures()
+                body, from_cache = get_departures(station)
 
                 print(
-                    "{} /departures: 200 ({})".format(
+                    "{} /departures?station={}: 200 ({})".format(
                         self.client_address[0],
+                        station,
                         "cached" if from_cache else "fetched from Bahn",
                     )
                 )
@@ -156,8 +203,9 @@ class BahnRelayHandler(BaseHTTPRequestHandler):
 
             except Exception as exc:
                 print(
-                    "{} /departures: ERROR: {}".format(
+                    "{} /departures?station={}: ERROR: {}".format(
                         self.client_address[0],
+                        station,
                         exc,
                     )
                 )
@@ -192,7 +240,7 @@ def main():
     )
 
     print(
-        "Bahn relay listening on http://{}:{}/departures".format(
+        "Bahn relay listening on http://{}:{}/departures?station=<eva number>".format(
             LISTEN_ADDRESS,
             LISTEN_PORT,
         )
@@ -208,4 +256,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

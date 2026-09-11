@@ -4,8 +4,8 @@ If you use Deutsche Bahn trains regularly you will be familiar with the importan
 
 # Overview
 
-* The project reads departure data from a local departures service (`http://10.0.0.204:8765/departures`) that delivers JSON in the same structure as the Bahn web API
-* The Flask server fetches that JSON directly with `urllib`, so no browser or Playwright is involved
+* The project reads departure data from a local departures relay (`macmini/bahnrelay.py`) running on the Mac Mini at `http://10.0.0.204:8765/departures?station=<eva>`; it delivers JSON in the same structure as the Bahn web API
+* The Flask server fetches that JSON directly with `urllib`, passing the station code in the URL, so no browser or Playwright is involved
 * `Flask` serves the timetable page and the `/update` JSON endpoint
 * The page updates with browser polling while the tab is visible
 * `Waitress` hosts the site in production
@@ -13,6 +13,20 @@ If you use Deutsche Bahn trains regularly you will be familiar with the importan
 * Home Assistant connects to host port 5123; in production this maps to container port 8080
 * Development uses a Compose override that runs `trains.py` directly on container port 5123
 * The container must be able to reach the departures service on the local network
+
+# Mac Mini departures relay
+
+`macmini/bahnrelay.py` is the puller script that runs on the Mac Mini. It fetches the Bahn departures JSON with the macOS native `curl` - a plain request from a residential IP that Bahn accepts without a browser - and serves the result to the timetable app. The Docker container cannot reach bahn.de reliably itself; this relay bridges that gap.
+
+1. `python3 macmini/bahnrelay.py`
+1. Check with `curl -s "http://10.0.0.204:8765/health"`
+
+Endpoints:
+
+* `/departures?station=<eva number>` returns the Bahn JSON for that station. The station code travels in the URL, so the script contains no hard-coded station and one relay can serve several stations. Requests without a valid EVA number are rejected with HTTP 400.
+* `/health` returns `{"status": "OK"}`.
+
+Responses are cached for 15 seconds per station, so parallel page polls do not cause several Bahn requests. A failed Bahn fetch is reported as HTTP 502 with the error message.
 
 # Docker
 

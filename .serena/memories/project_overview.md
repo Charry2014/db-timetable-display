@@ -6,8 +6,9 @@
 
 ## Active modules
 
-- `trains.py`: Flask routes, station constant, departures service URL `http://10.0.0.204:8765/departures`, `fetch_departures()` (stdlib `urllib`, 30s timeout, error/`body` contract), and Waitress startup on direct execution.
-- `departures.py`: transforms service `entries` into departure tuples and JSON grouped by direction.
+- `trains.py`: Flask routes, station constants (`Zorneding`/`8006671`), departures relay URL `http://10.0.0.204:8765/departures?station=8006671`, `fetch_departures()` (stdlib `urllib`, 30s timeout, error/`body` contract), and Waitress startup on direct execution.
+- `macmini/bahnrelay.py`: puller service for the Mac Mini host (not in Docker). Serves `/departures?station=<eva>` by fetching bahn.de with native macOS `curl`, with a per-station 15-second cache; HTTP 400 for a missing or non-numeric station, 502 when the Bahn fetch fails; `/health` for liveness. The station code comes from the URL.
+- `departures.py`: transforms relay `entries` into departure tuples and JSON grouped by direction.
 - `templates/trains.html`: frontend table and 15-second visible-tab polling loop.
 - `mylog.py`: Loguru stdout configuration.
 
@@ -18,9 +19,10 @@
 1. `/` renders `templates/trains.html`.
 2. JavaScript calls `/update` immediately and every 15 seconds while visible.
 3. `trains.flask_update` invokes `trains.update`.
-4. `trains.update` calls `fetch_departures(url)`, which performs a plain HTTP GET against `http://10.0.0.204:8765/departures` and returns the parsed JSON, or an `error`/`body` dictionary on HTTP or connection failure.
-5. `departures.process_departures` filters entries whose `verkehrmittel.produktGattung` is `SBAHN`, fills missing `ezZeit`, calculates delay and minutes remaining, sorts by minutes, limits to 20, and groups `Ebersberg(Oberbay)` and `Grafing Bahnhof` eastward.
-6. Flask returns JSON with stable keys: `timestamp`, `direction1_title`, `direction2_title`, `trains_east`, and `trains_west`.
+4. `trains.update` calls `fetch_departures(url)`, which performs a plain HTTP GET against `http://10.0.0.204:8765/departures?station=8006671` and returns the parsed JSON, or an `error`/`body` dictionary on HTTP or connection failure.
+5. The relay on the Mac Mini either serves its per-station 15-second cache or fetches bahn.de with native `curl` for the requested station.
+6. `departures.process_departures` filters entries whose `verkehrmittel.produktGattung` is `SBAHN`, fills missing `ezZeit`, calculates delay and minutes remaining, sorts by minutes, limits to 20, and groups `Ebersberg(Oberbay)` and `Grafing Bahnhof` eastward.
+7. Flask returns JSON with stable keys: `timestamp`, `direction1_title`, `direction2_title`, `trains_east`, and `trains_west`.
 
 ## Concurrency
 
@@ -28,7 +30,7 @@ Waitress handles requests in multiple threads. Each request thread performs an i
 
 ## Deployment at this revision
 
-Production uses one baked image built from the `Dockerfile`: Ubuntu 24.04, Python dependencies in `/opt/venv` on `PATH`, and application code copied last into `/timetable`. No browser or Chrome is needed because the data source is a plain HTTP service. Waitress serves on container port 8080 through `waitress-serve trains:app`. The default `docker-compose.yml` builds this image as `bahn-api:latest`, publishes host port 5123 to container port 8080, sets `restart: unless-stopped` and `TZ=Europe/Berlin`, and healthchecks `/` with curl. Code updates are `docker compose up -d --build`; `docker compose restart` reuses the existing image and is not a code update. The container must be able to reach `10.0.0.204:8765`.
+Production uses one baked image built from the `Dockerfile`: Ubuntu 24.04, Python dependencies in `/opt/venv` on `PATH`, and application code copied last into `/timetable`. No browser or Chrome is needed because the data source is the Mac Mini relay, which lives in `macmini/` and is excluded from the image and build context. Waitress serves on container port 8080 through `waitress-serve trains:app`. The default `docker-compose.yml` builds this image as `bahn-api:latest`, publishes host port 5123 to container port 8080, sets `restart: unless-stopped` and `TZ=Europe/Berlin`, and healthchecks `/` with curl. Code updates are `docker compose up -d --build`; `docker compose restart` reuses the existing image and is not a code update. The container must be able to reach `10.0.0.204:8765`.
 
 `docker-compose.dev.yml` is a development override (`docker compose -f docker-compose.yml -f docker-compose.dev.yml`): it bind-mounts the source over `/timetable`, runs `python3 trains.py` on container port 5123, and disables the healthcheck. It must never be used in production. `.dockerignore` excludes `venv/`, `.git/`, tests, docs, and `deprecated/` from the build context. The venv is baked at `/opt/venv` rather than `/timetable/venv` so the development bind mount cannot shadow it with the host virtual environment.
 

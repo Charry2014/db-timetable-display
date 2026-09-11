@@ -30,7 +30,8 @@ logger.debug("Starting")
 app = Flask(__name__)
 
 station_name = "Zorneding"
-url = 'http://10.0.0.204:8765/departures'
+station_id = "8006671"
+url = f'http://10.0.0.204:8765/departures?station={station_id}'
 port = 5123
 
 
