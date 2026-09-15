@@ -1,3 +1,7 @@
+# Credentials
+db-env*.sh
+.env*
+
 # Git and CI metadata
 .git/
 .gitignore
@@ -17,9 +21,6 @@ __pycache__/
 
 # Tests
 tests/
-
-# Mac Mini relay service (runs on the host, never in the image)
-macmini/
 
 # Legacy code (not imported by the runtime)
 deprecated/

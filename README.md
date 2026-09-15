@@ -1,90 +1,46 @@
-Read the DB timetables through a third party API and make a nice display of the data. This is designed to be displayed in a card on a Home Assistant dashboard.
+# bahn-api
 
-If you use Deutsche Bahn trains regularly you will be familiar with the importance of having up-to-date departure information ;-)
+This Flask application displays live Deutsche Bahn S-Bahn departures from Zorneding (`8006671`) for a Home Assistant dashboard.
 
-Deutsche Bahn’s public web API is protected by Akamai bot-detection rules that can return 403 OPS_BLOCKED based on characteristics of the requesting environment, not merely its public IP address or request rate. Despite using the same LAN and egress IP, matching Chrome and Playwright versions, supplying browser headers and cookies, and testing both Docker containers and the underlying Linux VM, requests from Linux remained blocked while native requests from macOS succeeded. Rather than continue attempting to reproduce a trusted network fingerprint in Docker, the project now uses a lightweight relay running directly on macOS - an old Mac Mini. The main Docker-hosted application requests data from this relay over the LAN, and the relay performs the on-demand Bahn request using native macOS curl, returning the resulting JSON with a short cache to suppress duplicate requests.
+## Architecture
 
-It would be hugely beneficial if DB would publish a clear mechanism by which such hobby projects can work effectively - but for now, this is where we are.
+The application uses DB's authenticated Timetables API directly over outbound HTTPS. `DepartureService` fetches the planned `/plan/{eva}/{date}/{hour}` feeds and sparse real-time `/fchg/{eva}` feed, overlays changes by stop ID, expands the search window as needed, and emits the existing relay-shaped `{"entries": [...]}` contract. `departures.py`, the routes, template, and visible-tab polling remain unchanged.
 
-# Overview
+The API allows 60 calls per minute. Plan hours are cached, changes are cached for 30 seconds, and concurrent refreshes use single-flight locks. Temporary upstream failures serve the last successful response; first boot returns the established error row.
 
-* The project reads departure data from a local departures relay (`macmini/bahnrelay.py`) running on the Mac Mini at `http://10.0.0.204:8765/departures?station=<eva>`; it delivers JSON in the same structure as the Bahn web API
-* The Flask server fetches that JSON directly with `urllib`, passing the station code in the URL, so no browser or Playwright is involved
-* `Flask` serves the timetable page and the `/update` JSON endpoint
-* The page updates with browser polling while the tab is visible
-* `Waitress` hosts the site in production
-* The production site runs in a Docker container hosted on a Proxmox LXC
-* Home Assistant connects to host port 5123; in production this maps to container port 8080
-* Development uses a Compose override that runs `trains.py` directly on container port 5123
-* The container must be able to reach the departures service on the local network
+## Credentials
 
-# Mac Mini departures relay
+Create an application in the DB API Marketplace, subscribe it to Timetables, and copy the example:
 
-`macmini/bahnrelay.py` is the puller script that runs on the Mac Mini. It fetches the Bahn departures JSON with the macOS native `curl` - a plain request from a residential IP that Bahn accepts without a browser - and serves the result to the timetable app. The Docker container cannot reach bahn.de reliably itself; this relay bridges that gap.
+```sh
+cp db-env.example.sh db-env.sh
+```
 
-1. `python3 macmini/bahnrelay.py`
-1. Check with `curl -s "http://10.0.0.204:8765/health"`
+Set `DB_CLIENT_ID` and `DB_API_KEY` in the untracked file. Optional settings are listed there. Never commit or log credential values.
 
-Endpoints:
+## Docker
 
-* `/departures?station=<eva number>` returns the Bahn JSON for that station. The station code travels in the URL, so the script contains no hard-coded station and one relay can serve several stations. Requests without a valid EVA number are rejected with HTTP 400.
-* `/health` returns `{"status": "OK"}`.
+Production listens on host port 5123 and container port 8080. The container needs only outbound HTTPS access to `apis.deutschebahn.com`.
 
-Responses are cached for 15 seconds per station, so parallel page polls do not cause several Bahn requests. A failed Bahn fetch is reported as HTTP 502 with the error message.
+```sh
+set -a && source db-env.sh && set +a
+docker compose up -d --build
+docker compose ps
+docker compose logs --tail=100 timetable
+curl -s http://localhost:5123/update
+```
 
-# Docker
+Use `docker compose restart` only to restart the existing image; source changes require `up -d --build`. Development uses:
 
-One `Dockerfile`, two Compose files:
+```sh
+set -a && source db-env.sh && set +a
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
 
-* `docker-compose.yml` (production, default) builds an image that contains the system packages, the Python dependencies, and the application code. Nothing is installed when the container starts, so restarts are fast and independent of the network. Waitress listens on container port 8080 and Compose publishes host port 5123 to it.
-* `docker-compose.dev.yml` (development override) bind-mounts the working tree over `/timetable` and runs `trains.py` directly on port 5123. It is for quick iteration only and must never be used in production, because there the mounted code would shadow the baked image.
+The former Mac Mini relay and its test are retained under `deprecated/` as retired rollback artifacts and are not used by the application.
 
-The application layer is the last layer in the `Dockerfile`, so a code-only change rebuilds just that layer while the apt and pip layers come from cache. Changes to `requirements.txt` rebuild the Python dependency layer, and changes to the `Dockerfile` itself rebuild the system layers including Chrome.
+## Testing
 
-## Updating production
-
-Run these from the repository root on the Proxmox LXC:
-
-1. `git pull`
-1. `docker compose up -d --build`
-1. `docker compose ps`
-1. `docker compose logs --tail=100 timetable`
-1. `curl -s http://localhost:5123/update`
-
-Notes:
-
-* `docker compose restart` only restarts the existing container with the existing image. It is **not** a code update. Use `docker compose up -d --build` whenever source code or `requirements.txt` changed.
-* A code-only rebuild normally finishes in seconds because only the final `COPY` layer is rebuilt.
-* System package updates are picked up on the next image rebuild. Rebuilt images should be spot-checked before going live.
-
-## First migration from the old setup
-
-The previous Compose file started a plain `ubuntu:24.04` container and ran `execute.sh`, which installed Python, Chrome, and pip packages on every container start. That script now lives in `deprecated/`. To migrate on the server:
-
-1. Stop and remove the old container: `docker compose down` (from the old checkout/compose file)
-1. `git pull` the new code
-1. `docker compose up -d --build`
-1. Verify with `docker compose ps` (should show `timetable_app` healthy), `curl -s http://localhost:5123/`, and `curl -s http://localhost:5123/update`
-1. Keep the old Ubuntu image around until the new service has run successfully for a day, then remove it as optional cleanup
-
-## Rollback
-
-Check out the last known-good commit (`git checkout <commit>`) and run `docker compose up -d --build` again. Normal updates never require deleting volumes or destructive Docker cleanup commands.
-
-## Development
-
-1. `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d`
-1. `docker compose -f docker-compose.yml -f docker-compose.dev.yml restart timetable`
-
-The override mounts the working tree into the container and runs `trains.py` directly, so source changes need only a container restart to be served. Port 5123 maps to container port 5123. Do not use this configuration in production.
-
-# To-do
-
-* Abstract away the station name from the code, as well as the hard coded destinations for the east-west split.
-* Clean up the time zones
-
-# Testing
-
-Run unit tests from the project root:
-
-1. `./venv/bin/python -m unittest discover -s tests -p "test_*.py"`
+```sh
+./venv/bin/python -m unittest discover -s tests -p "test_*.py"
+```

@@ -9,3 +9,5 @@ test*.py
 
 log/
 secrets.py
+env.sh
+db-env.sh
